@@ -9,12 +9,14 @@ if __name__ == '__main__':
     parser.add_argument('input_filename_pc', type=str, help='input filename of point cloud in .pcd.')
     parser.add_argument('input_filename_mesh', type=str, help='input filename of mesh in .obj.')
     parser.add_argument('output_filename', type=str, help='output filename in .pcd.')
+    parser.add_argument('-t', '--threads', type=int, default=0, help='number of threads to be used.')
     parser.add_argument('-b', '--binary', action='store_true', help='save in binary format. Default = False')
     args = vars(parser.parse_args())
 
     input_filename_pc = args['input_filename_pc']
     input_filename_mesh = args['input_filename_mesh']
     output_filename = args['output_filename']
+    threads = args['threads']
     binary = args['binary']
 
     scene = o3d.t.geometry.RaycastingScene()
@@ -23,7 +25,7 @@ if __name__ == '__main__':
 
     pcd = o3d.io.read_point_cloud(input_filename_pc)
 
-    ans = scene.compute_closest_points(o3d.core.Tensor(np.asarray(pcd.points), dtype=o3d.core.Dtype.Float32))
+    ans = scene.compute_closest_points(o3d.core.Tensor(np.asarray(pcd.points), dtype=o3d.core.Dtype.Float32), nthreads=threads)
 
     points = np.asarray(pcd.points)
     aprox_points = ans['points'].numpy()
