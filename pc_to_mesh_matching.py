@@ -19,9 +19,12 @@ if __name__ == '__main__':
     threads = args['threads']
     binary = args['binary']
 
+    print(f'Performing matching of point cloud {input_filename_pc} and mesh {input_filename_mesh}...')
+
     scene = o3d.t.geometry.RaycastingScene()
-    mesh = o3d.t.geometry.TriangleMesh.from_legacy(o3d.io.read_triangle_mesh(input_filename_mesh))
-    scene.add_triangles(mesh)
+    mesh = o3d.io.read_triangle_mesh(input_filename_mesh)
+    mesh_tensor = o3d.t.geometry.TriangleMesh.from_legacy(mesh)
+    scene.add_triangles(mesh_tensor)
 
     pcd = o3d.io.read_point_cloud(input_filename_pc)
 
@@ -31,17 +34,18 @@ if __name__ == '__main__':
     aprox_points = ans['points'].numpy()
     mean_dist = np.mean(np.sqrt(np.power(points - aprox_points, 2)))
 
-    invalid = 0
-    for elem in ans['primitive_ids'].numpy():
-        if elem == o3d.t.geometry.RaycastingScene.INVALID_ID:
-            invalid += 1
+    print('Done. Mesh to Points mean distance:', mean_dist)
 
-    print('Mesh to Points mean distance:', mean_dist)
-    print('No collision points:', invalid)
+    labels = ans['primitive_ids'].numpy()
+    if not mesh.has_triangle_normals():
+        mesh.compute_triangle_normals()
+    mesh_normals = np.asarray(mesh.triangle_normals)
+    normals = mesh_normals[labels]
 
     pc = np.zeros((points.shape[0], 7))
     pc[:,0:3] = points
-    pc[:, 3:6] = np.asarray(pcd.normals)
-    pc[:, 6] = ans['primitive_ids'].numpy()
+    pc[:, 3:6] = normals
+    pc[:, 6] = labels
 
+    print()
     write_pcd_by_pc(pc, output_filename, ['x','y','z','normal_x','normal_y','normal_z','label'], binary=binary)
